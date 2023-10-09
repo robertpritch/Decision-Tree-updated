@@ -19,7 +19,7 @@ def main():
     accuracies_with_pruning = []
     accuracies_without_pruning = []
 
-    val_size = 100  
+    val_size = 100
     for size in training_sizes:
         acc_with_pruning = 0
         acc_without_pruning = 0

@@ -143,28 +143,30 @@ def info_gain(examples, classes, mode_d):
   info_best_val = 0
   classes = classes[0]
 
+  # Determine the majority class from the examples
+  majority_class = get_majority_class(examples)
+
   for attribute in attribute_list:
     total = 0
-    #param_count holds the table referenced in the comment above
     param_count = {}
     if attribute != "Class":
       for example in examples:
         if example[attribute] not in param_count:
           class_response = classes.index(example["Class"])
           param_count[example[attribute]] = [0] * len(classes)
-          #if missing attribute, use mode of targets/classes
+          # If missing attribute, use majority class
           if example[attribute] == '?':
-            class_response = classes.index(mode_d)
+            class_response = classes.index(majority_class)
           param_count[example[attribute]][class_response] = 1
           total += 1
         else:
           class_response = classes.index(example["Class"])
-          #if missing attribute, use mode of targets/classes
+          # If missing attribute, use majority class
           if example[attribute] == '?':
-            class_response = classes.index(mode_d)
+            class_response = classes.index(majority_class)
           param_count[example[attribute]][class_response] += 1
           total += 1
-      #tests the entropy and if it is better than previous entropy, make this the best attribute
+
       temp_gain = con_entropy(param_count, total)
       if info_best_name == "":
         info_best_name = attribute
@@ -172,6 +174,7 @@ def info_gain(examples, classes, mode_d):
       elif info_best_val > temp_gain:
         info_best_val = temp_gain
         info_best_name = attribute
+  
   return info_best_name
 
     
