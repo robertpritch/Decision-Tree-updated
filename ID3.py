@@ -33,17 +33,24 @@ def ID3(examples, default):
     return tree_node
   else:
     # Selecting the best attribute based on information gain
-    attr = info_gain(examples, class_data, mode_d)
-    
+    if not isinstance(default, Node):
+       tree_node.attributes = []
+       tree_node.full_examples = examples
+    else:
+       tree_node.attributes = default.attributes
+       tree_node.full_examples = default.full_examples 
+    attr = info_gain(examples, class_data, mode_d, tree_node.attributes)
+    if attr == "":
+       return tree_node
     new_data = {}
 
     #default stores all the data, so that always have access to it even after you remove certain attributes on branches
     #checks if default is not a dictionary, then this is the first iteration of ID3 and it stores examples
-    if not isinstance(default, dict):
-      default = examples
+    
     
     # Organizing data for the next level of recursion
-    all_params = list_params(attr, default)
+    all_params = list_params(attr, tree_node.full_examples)
+
     
     #new data will hold the examples with the best attribute removed
     for param in all_params:
@@ -51,7 +58,7 @@ def ID3(examples, default):
     for example in examples:
       temp_ex = dict(example)
       save_data = temp_ex.pop(attr)
-      new_data[save_data].append(temp_ex)
+      new_data[example[attr]].append(example)
       
     # Recursively building the subtree for each value of the best attribute
     for key in new_data:
@@ -66,7 +73,8 @@ def ID3(examples, default):
       #otherwise label this branch node with the best attr and run ID3 with the attribute removed
       else:
         tree_node.label = attr
-        tree_node.children[key] = ID3(new_data[key], default)
+        tree_node.attributes.append(attr)
+        tree_node.children[key] = ID3(new_data[key], tree_node)
         
   
   return tree_node  # Returning the constructed tree
@@ -134,7 +142,7 @@ def evaluate(node, example):
 
 #cycles through each attribute, makes a dictionary which stores the attribute options and the classes (like the table on Slide 34 on the Lecture 04 slides)
 
-def info_gain(examples, classes, mode_d):
+def info_gain(examples, classes, mode_d, attributes):
   
   first_example = examples[0]
   attribute_list = list(first_example.keys())
@@ -143,30 +151,28 @@ def info_gain(examples, classes, mode_d):
   info_best_val = 0
   classes = classes[0]
 
-  # Determine the majority class from the examples
-  majority_class = get_majority_class(examples)
-
   for attribute in attribute_list:
     total = 0
+    #param_count holds the table referenced in the comment above
     param_count = {}
-    if attribute != "Class":
+    if attribute != "Class" and attribute not in attributes:
       for example in examples:
         if example[attribute] not in param_count:
           class_response = classes.index(example["Class"])
           param_count[example[attribute]] = [0] * len(classes)
-          # If missing attribute, use majority class
+          #if missing attribute, use mode of targets/classes
           if example[attribute] == '?':
-            class_response = classes.index(majority_class)
+            class_response = classes.index(mode_d)
           param_count[example[attribute]][class_response] = 1
           total += 1
         else:
           class_response = classes.index(example["Class"])
-          # If missing attribute, use majority class
+          #if missing attribute, use mode of targets/classes
           if example[attribute] == '?':
-            class_response = classes.index(majority_class)
+            class_response = classes.index(mode_d)
           param_count[example[attribute]][class_response] += 1
           total += 1
-
+      #tests the entropy and if it is better than previous entropy, make this the best attribute
       temp_gain = con_entropy(param_count, total)
       if info_best_name == "":
         info_best_name = attribute
@@ -212,8 +218,12 @@ def class_options(examples):
 
 #returns a list of the possible options for a given attribute. Ex. calling this function on house_votes_84.data attribute: handicapped-infants would return ["y", "n"]
 def list_params(attr, examples):
+  
+  
   param_list = []
   for example in examples:
+    
+    
     if example[attr] not in param_list:
       param_list.append(example[attr])
   return param_list
